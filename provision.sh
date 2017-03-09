@@ -21,5 +21,6 @@ source /etc/environment
 echo "Base provisioning complete."
 
 # Hadoop
+sudo chmod +x /vagrant/hadoop/hadoop.sh
 /vagrant/hadoop/hadoop.sh
 

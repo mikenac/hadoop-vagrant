@@ -8,7 +8,7 @@ HADOOP_HOME=/opt/hadoop
 
 echo "Installing Hadoop"
 sudo mkdir -p $HADOOP_HOME
-sudo chmod 775 $HADOOP_HOME
+sudo chmod 700 $HADOOP_HOME
 
 # add the user for hdfs
 sudo useradd -d $HADOOP_HOME hdfs
@@ -40,25 +40,28 @@ echo "$ENV" | sudo tee -a /etc/environment > /dev/null
 source /etc/environment
 
 # copy and modify hadoop configuration files
-sudo sed -i 'export JAVA_HOME.*' $HADOOP_HOME/etc/hadoop/hadoop-env.sh
+sudo sed -i '/export JAVA_HOME.*/d' $HADOOP_HOME/etc/hadoop/hadoop-env.sh
 echo "export JAVA_HOME=$JAVA_HOME" | sudo tee -a $HADOOP_HOME/etc/hadoop/hadoop-env.sh > /dev/null
 sudo cp /vagrant/hadoop/*.xml $HADOOP_HOME/etc/hadoop/
-sudo sed -i 'localhost' $HADOOP_HOME/etc/hadoop/hadoop-env.sh
+sudo sed -i '/localhost/d' $HADOOP_HOME/etc/hadoop/slaves
 echo "master.hadoop.lan" | sudo tee -a $HADOOP_HOME/etc/hadoop/slaves > /dev/null
 
 # passwordless login for hdfs user
-sudo  mkdir $HADOOP_HOME/.ssh
-sudo chmod 700 $HADOOP_HOME.ssh
-sudo  ssh-keygen -t dsa -P '' -f $HADOOP_HOME/.ssh/id_dsa
-sudo  bash -c "cat $HADOOP_HOME/.ssh/id_dsa.pub >> $HADOOP_HOME/.ssh/authorized_keys"
-sudo  bash -c "ssh-keyscan -H localhost >> $HADOOP_HOME/.ssh/known_hosts"
-sudo chmod 600 $HADOOP_HOME/.ssh/authorized_keys
+sudo mkdir $HADOOP_HOME/.ssh
+sudo chown hdfs:hdfs $HADOOP_HOME/.ssh
+sudo chmod 700 $HADOOP_HOME/.ssh
+sudo -u hdfs  ssh-keygen -b 2048 -t rsa -f $HADOOP_HOME/.ssh/id_rsa -q -N ""
+sudo -u hdfs  bash -c "cat $HADOOP_HOME/.ssh/id_rsa.pub >> $HADOOP_HOME/.ssh/authorized_keys"
+sudo -u hdfs  bash -c "ssh-keyscan -H  master.hadoop.lan >> $HADOOP_HOME/.ssh/known_hosts"
+sudo -u hdfs  bash -c "ssh-keyscan -H  master >> $HADOOP_HOME/.ssh/known_hosts"
+sudo chmod -R 600 $HADOOP_HOME/.ssh
 
 # create hdfs storage locations
 sudo mkdir -p /opt/volume/namenode
 sudo mkdir -p /opt/volume/datanode
 sudo chown -R hdfs:hdfs /opt/volume
-sudo chown -R hdfs:hdfs /opt/hadoop 
+sudo chown -R hdfs:hdfs $HADOOP_HOME 
+
 
 # format name node (once only)
 sudo -u hdfs $HADOOP_HOME/bin/hdfs namenode -format
